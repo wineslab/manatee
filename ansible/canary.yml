@@ -1,0 +1,39 @@
+# MANATEE canary pipeline with health-gated automatic rollback.
+# Each step shifts weight to v2, holds while the telemetry gate watches the
+# error ratio and p95 latency, and rolls back to v1 at the first violation.
+#
+#   ansible-playbook canary.yml -e steps='[10,25,50,75,100]' -e hold_s=20
+- name: Canary deployment of xApp v2
+  hosts: localhost
+  gather_facts: false
+  vars:
+    ns: manatee-exp
+    rev_root: "{{ lookup('env', 'REV_ROOT') }}"
+    gate: "{{ lookup('env', 'REV_ROOT') }}/harness/gate.py"
+    events: /var/lib/manatee-exp/current/events.csv
+    steps: [10, 25, 50, 75, 100]
+    hold_s: 20
+    gate_interval_s: 2
+    gate_window: 10s
+    max_error_ratio: 0.01
+    max_p95_ms: 50
+  tasks:
+    - name: Start every canary from 100/0
+      ansible.builtin.include_tasks: tasks/set_weights.yml
+      vars: {w2: 0, event: canary_start}
+
+    - name: Progressive traffic shift
+      block:
+        - name: Shift and gate each step
+          ansible.builtin.include_tasks: tasks/canary_step.yml
+          loop: "{{ steps }}"
+          loop_control: {loop_var: w2}
+        - name: Promotion complete
+          ansible.builtin.shell: echo "$(date +%s.%N),promoted," >> {{ events }}
+      rescue:
+        - name: Roll back to v1
+          ansible.builtin.include_tasks: tasks/set_weights.yml
+          vars: {w2: 0, event: rollback_applied}
+        - name: Report rollback
+          ansible.builtin.fail:
+            msg: "v2 failed the health gate; traffic restored to v1"

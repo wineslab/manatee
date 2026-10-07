@@ -1,0 +1,12 @@
+version: v1
+prbRatio: 30
+replicas: 1
+controlTarget: sink.manatee-exp:9100
+controlEvery: 10
+fault:
+  mode: none
+  afterS: 0
+  delayMs: 0
+# serviceAccount defaults to xapp-<version> so per-version mesh policies apply.
+serviceAccount: ""
+nodeSelector: {}

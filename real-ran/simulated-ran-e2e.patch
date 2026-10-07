@@ -1,0 +1,52 @@
+diff -ru a/base/nut/core/storage.yaml b/base/nut/core/storage.yaml
+--- a/base/nut/core/storage.yaml
++++ b/base/nut/core/storage.yaml
+@@ -25,6 +25,12 @@
+   hostPath:
+     path: "/mnt/data/open5gs"
+     type: DirectoryOrCreate
++  # multi-node cluster: pin the hostPath PV to one node.
++  nodeAffinity:
++    required:
++      nodeSelectorTerms:
++      - matchExpressions:
++        - {key: kubernetes.io/hostname, operator: In, values: [<node-name>]}
+ ---
+ # PersistentVolumeClaim for MongoDB
+ apiVersion: v1
+diff -ru a/base/nut/gnb/srsran/utils/gnb-template.yml b/base/nut/gnb/srsran/utils/gnb-template.yml
+--- a/base/nut/gnb/srsran/utils/gnb-template.yml
++++ b/base/nut/gnb/srsran/utils/gnb-template.yml
+@@ -60,7 +60,7 @@
+   e2sm_rc_enabled: true
+   addr: E2_ADDR            # substituted by setup.sh with the node IP (status.hostIP via downward API); SCTP-over-ClusterIP is unreliable, so reach e2term via the node IP:port
+   bind_addr: 0.0.0.0
+-  port: 36422
++  port: 32222               # our k3s cluster exposes e2term SCTP as NodePort 32222
+ 
+ log:
+   filename: /tmp/gnb.log
+diff -ru a/base/nut/ue/srsran/utils/ue-gnu.conf b/base/nut/ue/srsran/utils/ue-gnu.conf
+--- a/base/nut/ue/srsran/utils/ue-gnu.conf
++++ b/base/nut/ue/srsran/utils/ue-gnu.conf
+@@ -6,7 +6,7 @@
+ nof_antennas = 1
+ 
+ device_name = zmq
+-device_args = tx_port=tcp://0.0.0.0:2100,rx_port=tcp://srsue-gnu-radio.srsue.svc.cluster.local:2201,base_srate=23.04e6
++device_args = tx_port=tcp://0.0.0.0:2100,rx_port=tcp://srsue-gnu-radio.simran-ue.svc.cluster.local:2201,base_srate=23.04e6
+ 
+ [rat.eutra]
+ dl_earfcn = 2850
+diff -ru a/base/nut/ue/srsran/utils/ue.conf b/base/nut/ue/srsran/utils/ue.conf
+--- a/base/nut/ue/srsran/utils/ue.conf
++++ b/base/nut/ue/srsran/utils/ue.conf
+@@ -6,7 +6,7 @@
+ nof_antennas = 1
+ 
+ device_name = zmq
+-device_args = tx_port=tcp://0.0.0.0:2001,rx_port=tcp://srsran-gnb.srsran.svc.cluster.local:2000,base_srate=23.04e6
++device_args = tx_port=tcp://0.0.0.0:2001,rx_port=tcp://srsran-gnb.simran-ran.svc.cluster.local:2000,base_srate=23.04e6
+ 
+ [rat.eutra]
+ dl_earfcn = 2850

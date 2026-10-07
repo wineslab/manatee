@@ -1,0 +1,92 @@
+# Tekton engine for E3 (representative of OpenShift Pipelines, used by
+# AutoRAN). Same steps, holds, gate and rollback as the MANATEE Ansible
+# pipeline; each step is a TaskRun pod, the rollback is a `finally` task.
+apiVersion: v1
+kind: Namespace
+metadata: {name: manatee-ci}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: canary-runner, namespace: manatee-ci}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: canary-runner, namespace: manatee-exp}
+rules:
+- apiGroups: [networking.istio.io]
+  resources: [virtualservices, destinationrules]
+  verbs: [get, list, create, patch, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: canary-runner, namespace: manatee-exp}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: canary-runner}
+subjects:
+- {kind: ServiceAccount, name: canary-runner, namespace: manatee-ci}
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata: {name: set-weight-and-gate, namespace: manatee-ci}
+spec:
+  params:
+  - {name: w2, type: string}
+  - {name: hold, type: string, default: "20"}
+  - {name: gate, type: string, default: "true"}
+  - {name: event, type: string, default: step}
+  volumes:
+  - name: data
+    hostPath: {path: /var/lib/manatee-exp/current, type: DirectoryOrCreate}
+  steps:
+  - name: run
+    image: manatee-ci:0.1
+    imagePullPolicy: Never
+    volumeMounts: [{name: data, mountPath: /data}]
+    env:
+    - {name: W2, value: $(params.w2)}
+    script: |
+      #!/bin/sh
+      set -u
+      W1=$((100 - W2))
+      echo "$(date +%s.%N),$(params.event)_request,$W2" >> /data/events.csv
+      cat <<EOF | kubectl apply -f -
+      apiVersion: networking.istio.io/v1
+      kind: VirtualService
+      metadata: {name: xapp, namespace: manatee-exp}
+      spec:
+        hosts: [xapp.manatee-exp.svc.cluster.local]
+        tcp:
+        - match: [{port: 9000}]
+          route:
+          - destination: {host: xapp.manatee-exp.svc.cluster.local, subset: v1, port: {number: 9000}}
+            weight: $W1
+          - destination: {host: xapp.manatee-exp.svc.cluster.local, subset: v2, port: {number: 9000}}
+            weight: $W2
+      EOF
+      echo "$(date +%s.%N),$(params.event),$W2" >> /data/events.csv
+      [ "$(params.gate)" = "true" ] || exit 0
+      if python3 /usr/local/bin/gate.py --prom-url http://prometheus.istio-system:9090 \
+           --hold $(params.hold) --interval 2 --window 10s \
+           --max-error-ratio 0.01 --max-p95-ms 50; then
+        echo "$(date +%s.%N),gate_pass,$W2" >> /data/events.csv
+      else
+        echo "$(date +%s.%N),gate_fail,$W2" >> /data/events.csv
+        exit 1
+      fi
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata: {name: xapp-canary, namespace: manatee-ci}
+spec:
+  params:
+  - {name: hold, type: string, default: "20"}
+  tasks:
+  - {name: step-10, taskRef: {name: set-weight-and-gate}, params: [{name: w2, value: "10"}, {name: hold, value: $(params.hold)}]}
+  - {name: step-25, runAfter: [step-10], taskRef: {name: set-weight-and-gate}, params: [{name: w2, value: "25"}, {name: hold, value: $(params.hold)}]}
+  - {name: step-50, runAfter: [step-25], taskRef: {name: set-weight-and-gate}, params: [{name: w2, value: "50"}, {name: hold, value: $(params.hold)}]}
+  - {name: step-75, runAfter: [step-50], taskRef: {name: set-weight-and-gate}, params: [{name: w2, value: "75"}, {name: hold, value: $(params.hold)}]}
+  - {name: step-100, runAfter: [step-75], taskRef: {name: set-weight-and-gate}, params: [{name: w2, value: "100"}, {name: hold, value: $(params.hold)}]}
+  finally:
+  - name: rollback
+    when: [{input: $(tasks.status), operator: in, values: [Failed]}]
+    taskRef: {name: set-weight-and-gate}
+    params: [{name: w2, value: "0"}, {name: gate, value: "false"}, {name: event, value: rollback_applied}]

@@ -1,0 +1,6 @@
+- name: Apply canary weights v1={{ 100 - w2 | int }} v2={{ w2 }}
+  ansible.builtin.shell: |
+    echo "$(date +%s.%N),{{ event }}_request,{{ w2 }}" >> {{ events }}
+    bash {{ rev_root }}/scripts/set_weights.sh {{ 100 - w2 | int }} {{ w2 }}
+    echo "$(date +%s.%N),{{ event }},{{ w2 }}" >> {{ events }}
+  changed_when: true

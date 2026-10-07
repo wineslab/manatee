@@ -1,0 +1,16 @@
+# ArgoCD engine for E3 (GitOps, representative of 5G-CT). The canary weight
+# lives in Git; ArgoCD reconciles the VirtualService from the repository.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: xapp-canary
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: http://gitea.gitops:3000/manatee/xapp-canary.git
+    targetRevision: main
+    path: .
+  destination: {server: https://kubernetes.default.svc, namespace: manatee-exp}
+  syncPolicy:
+    automated: {prune: false, selfHeal: true}

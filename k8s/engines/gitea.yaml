@@ -1,0 +1,38 @@
+# In-cluster Git server for the GitOps (ArgoCD) engine. SQLite, no
+# persistence: the repository is re-created by engines/setup_argocd.sh.
+apiVersion: v1
+kind: Namespace
+metadata: {name: gitops}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: gitea, namespace: gitops}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: gitea}}
+  template:
+    metadata: {labels: {app: gitea}}
+    spec:
+      containers:
+      - name: gitea
+        image: docker.gitea.com/gitea:1.27.3-rootless
+        env:
+        - {name: GITEA__security__INSTALL_LOCK, value: "true"}
+        - {name: GITEA__database__DB_TYPE, value: sqlite3}
+        - {name: GITEA__server__ROOT_URL, value: "http://gitea.gitops:3000/"}
+        - {name: GITEA__server__DISABLE_SSH, value: "true"}
+        - {name: GITEA__service__DISABLE_REGISTRATION, value: "true"}
+        ports: [{containerPort: 3000}]
+        readinessProbe:
+          httpGet: {path: /api/healthz, port: 3000}
+          periodSeconds: 3
+        resources:
+          requests: {cpu: 100m, memory: 128Mi}
+          limits: {memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: gitea, namespace: gitops}
+spec:
+  selector: {app: gitea}
+  ports: [{name: http, port: 3000}]

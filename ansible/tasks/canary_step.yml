@@ -1,0 +1,22 @@
+- name: Shift traffic
+  ansible.builtin.include_tasks: set_weights.yml
+  vars: {event: step}
+
+- name: Hold {{ hold_s }}s under the telemetry gate
+  ansible.builtin.command: >
+    python3 {{ gate }} --hold {{ hold_s }} --interval {{ gate_interval_s }}
+    --window {{ gate_window }} --max-error-ratio {{ max_error_ratio }}
+    --max-p95-ms {{ max_p95_ms }}
+  register: gate_result
+  changed_when: false
+  failed_when: false
+
+- name: Record gate outcome
+  ansible.builtin.shell: >
+    echo "$(date +%s.%N),gate_{{ 'pass' if gate_result.rc == 0 else 'fail' }},{{ w2 }}" >> {{ events }}
+  changed_when: false
+
+- name: Stop the rollout on a gate violation
+  ansible.builtin.fail:
+    msg: "health gate rc={{ gate_result.rc }} at v2={{ w2 }}%: {{ gate_result.stdout_lines[-1] | default('') }}"
+  when: gate_result.rc != 0

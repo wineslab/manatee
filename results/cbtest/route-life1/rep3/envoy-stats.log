@@ -1,0 +1,4 @@
+v1 istio_tcp_connections_closed_total flags=UH 196
+v1 istio_tcp_connections_opened_total flags=UH 196
+v2 istio_tcp_connections_closed_total flags=DT 31
+v2 istio_tcp_connections_opened_total flags=DT 31

@@ -1,0 +1,81 @@
+# Workloads shared by every revision experiment. Mesh enrolment (sidecar
+# injection, ambient mode, Linkerd) is set by mesh_ns_setup in mesh.sh.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: manatee-exp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: xapp-v1, namespace: manatee-exp}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: xapp-v2, namespace: manatee-exp}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: loadgen, namespace: manatee-exp}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: sink, namespace: manatee-exp}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: sink, namespace: manatee-exp}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: sink}}
+  template:
+    metadata:
+      labels: {app: sink}
+      annotations: {prometheus.io/scrape: "true", prometheus.io/port: "9102"}
+    spec:
+      serviceAccountName: sink
+      containers:
+      - name: sink
+        image: manatee-harness:0.1
+        imagePullPolicy: Never
+        args: ["sink.py", "--csv", "/data/sink.csv", "--msg-log", "/data/sink-msgs.csv"]
+        ports: [{containerPort: 9100}, {containerPort: 9102}]
+        volumeMounts: [{name: data, mountPath: /data}]
+      volumes:
+      - name: data
+        hostPath: {path: /var/lib/manatee-exp/current, type: DirectoryOrCreate}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: sink, namespace: manatee-exp}
+spec:
+  selector: {app: sink}
+  ports: [{name: tcp-ctrl, port: 9100}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: xapp, namespace: manatee-exp}
+spec:
+  selector: {app: xapp}
+  ports:
+  - {name: tcp-data, port: 9000}
+  - {name: http-admin, port: 8080}
+---
+# Per-version Services: Gateway API backendRefs split across Services, and the
+# native baseline swaps the selector of "xapp" between them.
+apiVersion: v1
+kind: Service
+metadata: {name: xapp-v1, namespace: manatee-exp}
+spec:
+  selector: {app: xapp, version: v1}
+  ports:
+  - {name: tcp-data, port: 9000}
+  - {name: http-admin, port: 8080}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: xapp-v2, namespace: manatee-exp}
+spec:
+  selector: {app: xapp, version: v2}
+  ports:
+  - {name: tcp-data, port: 9000}
+  - {name: http-admin, port: 8080}

@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+results/**/conns-*.csv
+engines/ci-image/kubectl
+engines/ci-image/gate.py
+figures/
+tables/
+*.ipynb_checkpoints

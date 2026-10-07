@@ -1,0 +1,5 @@
+apiVersion: v2
+name: xapp-sim
+description: Mock xApp used by the MANATEE revision experiments (same package for MANATEE and native releases)
+version: 0.1.0
+appVersion: "0.1"

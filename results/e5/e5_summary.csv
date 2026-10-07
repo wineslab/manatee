@@ -1,0 +1,11 @@
+mesh,scenario,fault,n,detect_s_mean,detect_s_std,faulty_msgs_mean,faulty_msgs_std,first_v2_s_mean,first_v2_s_std,pre_release_v2_mean,pre_release_v2_std,rollback_prop_s_mean,rollback_prop_s_std,split_err_pp_mean,split_err_pp_std,dp_cpu_m_mean,dp_cpu_m_std,dp_mem_mi_mean,dp_mem_mi_std,mean_ms_mean,mean_ms_std,p95_ms_mean,p95_ms_std
+ambient,canary,error,5,8.014,2.665,872,225.544,0.154,0.068,9.4,20.465,0.014,0.021,0.914,0.613,,,,,,,,
+ambient,canary,none,5,,,,,0.172,0.115,32,18.547,,,0.722,0.204,,,,,,,,
+ambient,overhead,none,5,,,,,,,,,,,,,310.301,16.004,59.234,3.178,0.528,0.007,1.012,0.009
+cilium,overhead,none,5,,,,,,,,,,,,,112.362,2.748,334.554,5.828,0.179,0.003,0.256,0.006
+istio,canary,error,5,8.467,1.982,906,196.672,0.158,0.015,0,0.0,0.057,0.059,0.67,0.877,,,,,,,,
+istio,canary,none,5,,,,,0.238,0.068,0,0.0,,,0.701,0.064,,,,,,,,
+istio,overhead,none,5,,,,,,,,,,,,,252.381,10.852,224.486,2.383,0.436,0.007,1.098,0.018
+linkerd,canary,error,5,8.078,2.16,862,288.565,0.11,0.143,0,0.0,0.0,0.0,0.951,0.731,,,,,,,,
+linkerd,canary,none,5,,,,,0.067,0.052,0,0.0,,,0.485,0.113,,,,,,,,
+linkerd,overhead,none,5,,,,,,,,,,,,,208.457,3.422,167.248,0.654,0.421,0.005,1.345,0.017

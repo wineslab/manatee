@@ -1,0 +1,99 @@
+# Based on: https://github.com/srsran/oran-sc-ric/blob/main/e2-agents/srsRAN/gnb_zmq.yaml
+ran_node_name: cu_cp_01
+gnb_id: 411
+gnb_id_bit_length: 22
+gnb_cu_up_id: 0
+gnb_du_id: 0
+
+cu_cp:
+  amf:
+    addr: open5gs-amf-ngap.simran-open5gs.svc.cluster.local
+    port: 38412
+    bind_addr: 0.0.0.0
+    supported_tracking_areas:
+      - tac: 7
+        plmn_list:
+          - plmn: "00101"
+            tai_slice_support_list:
+              - sst: 1
+                sd: "0x1"
+  inactivity_timer: 7200
+cu_up:
+  ngu:
+    socket:
+      - bind_addr: 0.0.0.0  # The local IP/interface the gNB listens on internally
+        ext_addr: GNB_SVC_IP    # The public/proxy IP that the UPF can actually route to
+
+ru_sdr:
+  device_driver: zmq
+  device_args: tx_port=tcp://0.0.0.0:2000,rx_port=tcp://srsue-gnu-radio.simran-ue.svc.cluster.local:2001,base_srate=23.04e6
+  srate: 23.04
+  tx_gain: 75
+  rx_gain: 75
+
+cell_cfg:
+  dl_arfcn: 368500
+  band: 3
+  channel_bandwidth_MHz: 20
+  common_scs: 15
+  plmn: "00101"
+  tac: 7
+  pdcch:
+    common:
+      ss0_index: 0
+      coreset0_index: 12
+    dedicated:
+      ss2_type: common
+      dci_format_0_1_and_1_1: false
+  prach:
+    prach_config_index: 1
+  pdsch:
+    mcs_table: qam64
+  pusch:
+    mcs_table: qam64
+
+e2:
+  enable_du_e2: true
+  enable_cu_cp_e2: false
+  enable_cu_up_e2: false
+  e2sm_kpm_enabled: true
+  e2sm_rc_enabled: true
+  addr: E2_ADDR            # substituted by setup.sh with the node IP (status.hostIP via downward API); SCTP-over-ClusterIP is unreliable, so reach e2term via the node IP:port
+  bind_addr: 0.0.0.0
+  port: 32222               # our k3s cluster exposes e2term SCTP as NodePort 32222 (36422 upstream)
+
+log:
+  filename: /tmp/gnb.log
+  all_level: info
+  hex_max_size: 0
+
+pcap:
+  mac_enable: false
+  mac_filename: /tmp/gnb_mac.pcap
+  ngap_enable: false
+  ngap_filename: /tmp/gnb_ngap.pcap
+  e2ap_enable: false
+metrics:
+  autostart_stdout_metrics: false
+  enable_log: false
+  enable_json: true
+  layers:
+    enable_app_usage: true
+    enable_e1ap: true
+    enable_pdcp: true
+    enable_cu_up_executor: true
+    enable_sched: true
+    enable_rlc: true
+    enable_mac: true
+    enable_executor: true
+    enable_du_low: true
+    enable_ru: true
+  periodicity:
+    app_usage_report_period: 1000
+    cu_cp_report_period: 1000
+    cu_up_report_period: 1000
+    du_report_period:  1000
+remote_control:
+  bind_addr: 0.0.0.0
+  port: 8001
+  enabled: true

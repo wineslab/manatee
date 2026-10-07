@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels: {app: xapp, release: {{ .Release.Name }}}
+spec:
+  replicas: {{ .Values.replicas }}
+  # Version is a pod label only, so a rolling update can change it in place.
+  selector: {matchLabels: {app: xapp, release: {{ .Release.Name }}}}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+  template:
+    metadata:
+      labels: {app: xapp, release: {{ .Release.Name }}, version: {{ .Values.version }}}
+      annotations: {prometheus.io/scrape: "true", prometheus.io/port: "9102"}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount | default (printf "xapp-%s" .Values.version) }}
+      terminationGracePeriodSeconds: 5
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: xapp
+        image: manatee-harness:0.1
+        imagePullPolicy: Never
+        args: ["xapp_sim.py"]
+        env:
+        - {name: VERSION, value: {{ .Values.version | quote }}}
+        - {name: PRB_RATIO, value: {{ .Values.prbRatio | quote }}}
+        - {name: CONTROL_TARGET, value: {{ .Values.controlTarget | quote }}}
+        - {name: CONTROL_EVERY, value: {{ .Values.controlEvery | quote }}}
+        - {name: FAULT_MODE, value: {{ .Values.fault.mode | quote }}}
+        - {name: FAULT_AFTER_S, value: {{ .Values.fault.afterS | quote }}}
+        - {name: FAULT_DELAY_MS, value: {{ .Values.fault.delayMs | quote }}}
+        ports: [{containerPort: 9000}, {containerPort: 8080}, {containerPort: 9102}]
+        # Readiness only checks the admin port so that injected data-path
+        # faults are handled by the release mechanism under test.
+        readinessProbe:
+          tcpSocket: {port: 8080}
+          periodSeconds: 2
+        resources:
+          requests: {cpu: 250m, memory: 64Mi}
+          limits: {cpu: "1", memory: 256Mi}

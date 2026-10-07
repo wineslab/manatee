@@ -1,0 +1,11 @@
+engine,fault,n,detect_to_api_s_mean,detect_to_api_s_std,faulty_msgs_mean,faulty_msgs_std,first_actuation_s_mean,first_actuation_s_std,host_cpu_m_mean,host_cpu_m_std,host_mem_mi_mean,host_mem_mi_std,last_faulty_s_mean,last_faulty_s_std,rolled_back_mean,rolled_back_std,full_traffic_s_mean,full_traffic_s_std,promoted_mean,promoted_std,step_overhead_s_mean,step_overhead_s_std,engine_cpu_m_mean,engine_cpu_m_std,engine_mem_mi_mean,engine_mem_mi_std
+ansible,error,10,9.704,1.402,992,123.81,1.55,0.06,21.359,3.185,105.642,3.177,9.723,1.333,1,0.0,,,,,,,,,,
+ansible,none,10,,,,,1.561,0.087,24.082,0.824,107.616,0.638,,,,,86.175,0.163,1,0.0,1.154,0.037,,,,
+argo-rollouts,error,10,9.32,1.184,973,167.733,4.882,0.071,,,,,9.437,1.205,1,0.0,,,,,,,3.039,0.182,28.5,0.834
+argo-rollouts,none,10,,,,,4.875,0.072,,,,,,,,,86.772,3.754,1,0.0,0.474,0.941,4.513,0.212,29.969,1.022
+argocd-poll,error,3,255.513,16.209,25460,2130.939,199.279,36.107,,,,,255.553,16.183,1,0.0,,,,,,,21.464,0.487,407.534,8.378
+argocd-poll,none,3,,,,,216.362,26.171,0.0,0,0.0,0,,,,,1219.476,134.373,1,0.0,230.779,27.056,24.802,1.689,428.391,9.11
+argocd-webhook,error,10,9.463,1.375,1010,171.594,0.757,0.019,0.387,0.462,14.423,0.491,9.53,1.393,1,0.0,,,,,,,33.891,3.895,443.891,15.39
+argocd-webhook,none,10,,,,,0.743,0.042,0.688,0.083,16.997,0.163,,,,,85.376,0.142,1,0.0,1.158,0.033,48.651,2.429,469.737,11.594
+tekton,error,10,12.978,1.821,1307,199.725,4.658,0.551,,,,,12.997,1.791,1,0.0,,,,,,,3.867,0.463,88.833,1.072
+tekton,none,10,,,,,4.458,0.562,,,,,,,,,104.533,1.421,1,0.0,5.019,0.305,3.483,0.38,88.2,1.687
